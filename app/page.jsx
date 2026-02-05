@@ -1586,6 +1586,30 @@ export default function HomePage() {
     }
   }, []);
 
+  // 存储当前被划开的基金代码
+  const [swipedFundCode, setSwipedFundCode] = useState(null);
+
+  // 点击页面其他区域时收起删除按钮
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // 如果点击的是删除按钮本身，不处理（删除逻辑会处理）
+      // 这里我们可以通过检查 swipedFundCode 是否存在来决定是否需要收起
+      if (swipedFundCode) {
+        setSwipedFundCode(null);
+      }
+    };
+
+    if (swipedFundCode) {
+      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [swipedFundCode]);
+
   // 检查交易日状态
   const checkTradingDay = () => {
     const now = new Date();
@@ -3016,7 +3040,10 @@ export default function HomePage() {
                       {viewMode === 'list' && isMobile && (
                         <div 
                           className="swipe-action-bg"
-                          onClick={() => requestRemoveFund(f)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // 阻止冒泡，防止触发全局收起导致状态混乱
+                            requestRemoveFund(f);
+                          }}
                         >
                           <TrashIcon width="18" height="18" />
                           <span>删除</span>
@@ -3027,14 +3054,33 @@ export default function HomePage() {
                         drag={viewMode === 'list' && isMobile ? "x" : false}
                         dragConstraints={{ left: -80, right: 0 }}
                         dragElastic={0.1}
+                        // 如果当前行不是被选中的行，强制回到原点 (x: 0)
+                        animate={viewMode === 'list' && isMobile ? { x: swipedFundCode === f.code ? -80 : 0 } : undefined}
                         onDragEnd={(e, { offset, velocity }) => {
                           if (viewMode === 'list' && isMobile) {
                              if (offset.x < -40) {
-                               // 可以在这里触发确认或者仅仅是保持打开状态
-                               // 但简单的实现通常是拖动超过阈值后自动回弹或者直接触发（如果想模仿某些App直接删除）
-                               // 这里的实现是：用户可以拖动露出后面的按钮，点击按钮删除。
-                               // framer motion 的 dragConstraints 会自动处理回弹，如果没设置 dragSnapToOrigin
+                               setSwipedFundCode(f.code);
+                             } else {
+                               setSwipedFundCode(null);
                              }
+                          }
+                        }}
+                        onClick={(e) => {
+                          // 阻止事件冒泡，避免触发全局的 click listener 导致立刻被收起
+                          // 只有在已经展开的情况下点击自身才需要阻止冒泡（或者根据需求调整）
+                          // 这里我们希望：点击任何地方都收起。
+                          // 如果点击的是当前行，且不是拖拽操作，上面的全局 listener 会处理收起。
+                          // 但为了防止点击行内容触发收起后又立即触发行的其他点击逻辑（如果有的话），
+                          // 可以在这里处理。不过当前需求是“点击其他区域收起”，
+                          // 实际上全局 listener 已经覆盖了“点击任何区域（包括其他行）收起”。
+                          // 唯一的问题是：点击当前行的“删除按钮”时，会先触发全局 click 导致收起，然后触发删除吗？
+                          // 删除按钮在底层，通常不会受影响，因为 React 事件和原生事件的顺序。
+                          // 但为了保险，删除按钮的 onClick 应该阻止冒泡。
+                          
+                          // 如果当前行已展开，点击行内容（非删除按钮）应该收起
+                          if (viewMode === 'list' && isMobile && swipedFundCode === f.code) {
+                             e.stopPropagation(); // 阻止冒泡，自己处理收起，避免触发全局再次处理
+                             setSwipedFundCode(null);
                           }
                         }}
                         style={{ 
