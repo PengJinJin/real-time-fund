@@ -181,7 +181,17 @@ body {
 @media (max-width: 640px) {
   /* Default: Search hidden, Trigger visible */
   .navbar-add-fund {
-    display: none;
+    display: flex;
+    width: 0 !important;
+    min-width: 0 !important;
+    flex: 0 0 0 !important;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
   }
 
   .mobile-search-btn {
@@ -189,20 +199,51 @@ body {
   }
 
   /* When search focused/active */
+  .brand {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    transform: translateX(0);
+    width: auto;
+    white-space: nowrap;
+  }
+
   .brand.search-focused-sibling {
-    display: none !important;
+    width: 0 !important;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: translateX(-20px);
+    pointer-events: none;
+  }
+
+  .actions {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    transform: translateX(0);
+    width: auto;
+    white-space: nowrap;
   }
 
   .actions.search-focused-sibling {
-    display: none !important;
+    width: 0 !important;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: translateX(20px);
+    pointer-events: none;
   }
 
   .navbar-add-fund.search-focused {
     display: flex !important;
     max-width: 100% !important;
     width: 100% !important;
-    flex: 1;
+    flex: 1 !important;
     margin-top: 0 !important;
+    opacity: 1;
+    pointer-events: auto;
+    overflow: visible !important;
   }
 }
 

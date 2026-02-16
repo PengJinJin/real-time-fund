@@ -10,7 +10,6 @@ import timezone from 'dayjs/plugin/timezone';
 import Announcement from "./components/Announcement";
 import { DatePicker, DonateTabs, NumericInput, Stat } from "./components/Common";
 import { ChevronIcon, CloseIcon, CloudIcon, DragIcon, ExitIcon, EyeIcon, EyeOffIcon, GridIcon, ListIcon, LoginIcon, LogoutIcon, MailIcon, PinIcon, PinOffIcon, PlusIcon, RefreshIcon, SettingsIcon, SortIcon, StarIcon, TrashIcon, UpdateIcon, UserIcon } from "./components/Icons";
-import githubImg from "./assets/github.svg";
 import weChatGroupImg from "./assets/weChatGroup.png";
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, submitFeedback } from './api/fund';
@@ -3109,6 +3108,7 @@ export default function HomePage() {
       setSearchTerm('');
       setSelectedFunds([]);
       setShowDropdown(false);
+      setIsSearchFocused(false);
       if (failures.length > 0) {
         setAddFailures(failures);
         setAddResultOpen(true);
@@ -3747,7 +3747,7 @@ export default function HomePage() {
                 initial={{ opacity: 0, width: 0, marginLeft: 0 }}
                 animate={{ opacity: 1, width: 'auto', marginLeft: 8 }}
                 exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}
+                style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', height: 24 }}
                 title="正在同步到云端..."
               >
                 <motion.svg
@@ -3772,6 +3772,18 @@ export default function HomePage() {
         </div>
         <div className={`glass add-fund-section navbar-add-fund ${(isSearchFocused || selectedFunds.length > 0) ? 'search-focused' : ''}`} role="region" aria-label="添加基金">
           <div className="search-container" ref={dropdownRef}>
+            {selectedFunds.length > 0 && (
+              <div className="selected-inline-chips" style={{ marginBottom: 8, marginLeft: 0 }}>
+                {selectedFunds.map(fund => (
+                  <div key={fund.CODE} className="fund-chip">
+                    <span>{fund.NAME}</span>
+                    <button onClick={() => toggleSelectFund(fund)} className="remove-chip">
+                      <CloseIcon width="14" height="14" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <form className="form" onSubmit={addFund}>
               <div className="search-input-wrapper" style={{ flex: 1, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span className="navbar-search-icon" aria-hidden="true">
@@ -3781,18 +3793,6 @@ export default function HomePage() {
                   </svg>
                 </span>
                 <div className="input navbar-input-shell">
-                  {selectedFunds.length > 0 && (
-                    <div className="selected-inline-chips">
-                      {selectedFunds.map(fund => (
-                        <div key={fund.CODE} className="fund-chip">
-                          <span>{fund.NAME}</span>
-                          <button onClick={() => toggleSelectFund(fund)} className="remove-chip">
-                            <CloseIcon width="14" height="14" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                   <input
                     ref={inputRef}
                     className="navbar-input-field"
@@ -3803,7 +3803,10 @@ export default function HomePage() {
                       setShowDropdown(true);
                       setIsSearchFocused(true);
                     }}
-                    onBlur={() => setIsSearchFocused(false)}
+                    onBlur={() => {
+                      // 延迟关闭，以允许点击搜索结果
+                      setTimeout(() => setIsSearchFocused(false), 200);
+                    }}
                   />
                 </div>
                 {isSearching && <div className="search-spinner" />}
@@ -3883,7 +3886,6 @@ export default function HomePage() {
               <UpdateIcon width="14" height="14" />
             </div>
           )}
-          <img alt="项目Github地址" src={githubImg.src} style={{ width: '30px', height: '30px', cursor: 'pointer' }} onClick={() => window.open("https://github.com/hzm0321/real-time-fund")} />
           {isMobile && (
             <button
               className="icon-button mobile-search-btn"
