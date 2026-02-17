@@ -1972,11 +1972,14 @@ export default function HomePage() {
       clearTimeout(timer);
     };
   }, [groups, currentTab]); // groups 或 tab 变化可能导致 filterBar 高度变化
-  const handleMobileSearchClick = () => {
+  const handleMobileSearchClick = (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     setIsSearchFocused(true);
+    // 等待动画完成后聚焦，避免 iOS 键盘弹出问题
     setTimeout(() => {
       inputRef.current?.focus();
-    }, 100);
+    }, 350);
   };
 
   const [holdingModal, setHoldingModal] = useState({ open: false, fund: null });
@@ -3108,6 +3111,7 @@ export default function HomePage() {
       setSearchTerm('');
       setSelectedFunds([]);
       setShowDropdown(false);
+      inputRef.current?.blur();
       setIsSearchFocused(false);
       if (failures.length > 0) {
         setAddFailures(failures);

@@ -434,6 +434,11 @@ input[type="number"] {
     /* 防止 iOS 在输入时自动放大 */
   }
 
+  .navbar-input-field {
+    font-size: 16px;
+    /* 防止 iOS 在输入时自动放大 */
+  }
+
   .container {
     padding: 16px;
   }
