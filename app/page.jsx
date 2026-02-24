@@ -39,7 +39,7 @@ import WeChatModal from "./components/WeChatModal";
 import githubImg from "./assets/github.svg";
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { recordValuation, getAllValuationSeries, clearFund } from './lib/valuationTimeseries';
-import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds } from './api/fund';
+import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, extractFundNamesWithLLM } from './api/fund';
 import packageJson from '../package.json';
 
 dayjs.extend(utc);
@@ -1043,7 +1043,7 @@ export default function HomePage() {
         for (const base of cdnBases) {
           for (const coreFile of coreCandidates) {
             try {
-              worker = await createWorker('eng', 1, {
+              worker = await createWorker('chi_sim+eng', 1, {
                 workerPath: `${base}/tesseract.js@v5.1.1/dist/worker.min.js`,
                 corePath: `${base}/tesseract.js-core@v5.1.1/${coreFile}`,
               });
@@ -1086,6 +1086,7 @@ export default function HomePage() {
       };
 
       const allCodes = new Set();
+      const allNames = new Set();
       for (let i = 0; i < files.length; i++) {
         if (abortScanRef.current) break;
 
@@ -1111,11 +1112,48 @@ export default function HomePage() {
         }
         const matches = text.match(/\b\d{6}\b/g) || [];
         matches.forEach(c => allCodes.add(c));
+
+        // 如果当前图片中没有识别出基金编码，尝试从文本中提取可能的中文基金名称（调用 GLM 接口）
+        if (!matches.length && text) {
+          let parsedNames = [];
+          try {
+            parsedNames = await extractFundNamesWithLLM(text);
+          } catch (e) {
+            parsedNames = [];
+          }
+          parsedNames.forEach((name) => {
+            if (name && typeof name === 'string') {
+              allNames.add(name.trim());
+            }
+          });
+        }
       }
 
       if (abortScanRef.current) {
         // 如果是手动终止，不显示结果弹窗
         return;
+      }
+
+      // 如果所有截图中都没有识别出基金编码，尝试使用识别到的中文名称去搜索基金
+      if (allCodes.size === 0 && allNames.size > 0) {
+        const names = Array.from(allNames);
+        setScanProgress({ stage: 'verify', current: 0, total: names.length });
+        for (let i = 0; i < names.length; i++) {
+          if (abortScanRef.current) break;
+          const name = names[i];
+          setScanProgress(prev => ({ ...prev, current: i + 1 }));
+          try {
+            const list = await searchFundsWithTimeout(name, 8000);
+            // 只有当搜索结果「有且仅有一条」时，才认为名称匹配是唯一且有效的
+            if (Array.isArray(list) && list.length === 1) {
+              const found = list[0];
+              if (found && found.CODE) {
+                allCodes.add(found.CODE);
+              }
+            }
+          } catch (e) {
+          }
+        }
       }
 
       const codes = Array.from(allCodes).sort();
